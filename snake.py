@@ -3,6 +3,8 @@ import random
 from enum import Enum
 from collections import namedtuple
 import math
+import os
+from datetime import datetime
 
 pygame.init()
 
@@ -65,9 +67,7 @@ class SnakeGame:
         
         self.direction = Direction.RIGHT
         self.head = Point(self.w/2, self.h/2)
-        self.snake = [
-            self.head,
-        ]
+        self.snake = [self.head]
         self.bodyColors = [SNAKE_GREEN] 
         self.score = 0
         self.food = None
@@ -75,6 +75,22 @@ class SnakeGame:
         self.particles = []
         self.fruit_type = None
         self._place_food()
+        
+        # Modified session handling
+        self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.session_dir = f"sessions/session_{self.session_id}"
+        self.frames_dir = f"{self.session_dir}/frames"
+        self.keylog_file = f"{self.session_dir}/keylog.txt"
+        
+        # Create directory structure
+        os.makedirs(self.frames_dir, exist_ok=True)
+        
+        # Initialize keylog file with header
+        with open(self.keylog_file, 'w') as f:
+            f.write("frame,key_pressed\n")
+        
+        # Initialize frame counter
+        self.frame_count = 0
         
     def _create_background(self):
         # Create a surface with a gradient and pattern
@@ -187,6 +203,7 @@ class SnakeGame:
     
     def play_step(self):
         game_over = False
+        key_pressed = "none"
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -195,15 +212,19 @@ class SnakeGame:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT and self.direction != Direction.RIGHT:
                     self.direction = Direction.LEFT
+                    key_pressed = "LEFT"
                     break
                 elif event.key == pygame.K_RIGHT and self.direction != Direction.LEFT:
                     self.direction = Direction.RIGHT
+                    key_pressed = "RIGHT"
                     break
                 elif event.key == pygame.K_UP and self.direction != Direction.DOWN:
                     self.direction = Direction.UP
+                    key_pressed = "UP"
                     break
                 elif event.key == pygame.K_DOWN and self.direction != Direction.UP:
                     self.direction = Direction.DOWN
+                    key_pressed = "DOWN"
                     break
         
         self._move(self.direction)
@@ -234,6 +255,16 @@ class SnakeGame:
             self.snake.pop()
         
         self._update_ui()
+        
+        # Save frame in jpg format
+        frame = pygame.Surface((self.w, self.h))
+        frame.blit(self.display, (0, 0))
+        pygame.image.save(frame, f"{self.frames_dir}/frame_{self.frame_count:06d}.jpg")
+        
+        with open(self.keylog_file, 'a') as f:
+            f.write(f"{self.frame_count},{key_pressed}\n")
+        self.frame_count += 1
+        
         self.clock.tick(SPEED)
         
         return game_over, self.score
