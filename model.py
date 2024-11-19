@@ -65,14 +65,8 @@ class SnakeFramePredictor:
         print(f"Found {len(frame_files)} frame files")
         
         for frame_file in frame_files:
-            img = Image.open(frame_file)
-            # print(f"Loading {frame_file} - Original mode: {img.mode}")
-            # Convert to RGBA if not already
-            if img.mode != 'RGBA':
-                img = img.convert('RGBA')
-                # print(f"Converted to RGBA mode")
+            img = Image.open(frame_file).convert('RGB')  # Always convert to RGB
             img = np.array(img) / 255.0  # Normalize to 0-1
-            # print(f"Frame shape after conversion: {img.shape}")
             frames.append(img)
             
         # Load key inputs
@@ -167,7 +161,7 @@ class SnakeFramePredictor:
                         for f, k in zip(batch_frames, batch_keys)
                     ])
                     
-                    y = torch.FloatTensor(batch_next).permute(0, 3, 1, 2).to(self.device)
+                    y = torch.FloatTensor(batch_next[:, :, :, :3]).permute(0, 3, 1, 2).to(self.device)  # Only take RGB channels
                     
                     # Forward pass
                     pred = self.model(x)
